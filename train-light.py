@@ -21,6 +21,9 @@ from random_erasing import RandomErasing
 import yaml
 import math
 from shutil import copyfile
+import numpy as np
+import cv2
+from skimage.feature import local_binary_pattern
 
 version =  torch.__version__
 #fp16
@@ -35,6 +38,8 @@ except ImportError: # will be 3.x series
 parser = argparse.ArgumentParser(description='Training')
 parser.add_argument('--gpu_ids',default='0', type=str,help='gpu_ids: e.g. 0  0,1,2  0,2')
 parser.add_argument('--name',default='ft_ResNet20C', type=str, help='output model name')
+parser.add_argument('--modelA',default='ft_net56', type=str)
+parser.add_argument('--modelB',default='ft_net110', type=str)
 parser.add_argument('--data_dir',default='../PKUSketchRE-ID_V1/pytorch',type=str, help='training dir path')
 parser.add_argument('--train_all', action='store_true', help='use all training data' )
 parser.add_argument('--color_jitter', action='store_true', help='use color jitter in training' )
@@ -55,13 +60,26 @@ parser.add_argument('--use_resnet110_fc1024', action='store_true', help='use res
 parser.add_argument('--use_resnet110_fc768', action='store_true', help='use resnet110 + fc786' )
 parser.add_argument('--use_resnet110_fc256', action='store_true', help='use resnet110 + fc256' )
 parser.add_argument('--use_resnet110_fc128', action='store_true', help='use resnet110 + fc128' )
+parser.add_argument('--use_ensemble', action='store_true', help='use ensemble' )
 parser.add_argument('--warm_epoch', default=0, type=int, help='the first K epoch that needs warm up')
 #parser.add_argument('--lr', default=0.05, type=float, help='learning rate')
 parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
 parser.add_argument('--droprate', default=0.5, type=float, help='drop rate')
 parser.add_argument('--PCB', action='store_true', help='use PCB+ResNet50' )
 parser.add_argument('--fp16', action='store_true', help='use float16 instead of float32, which will save about 50% memory' )
+parser.add_argument('--LBP', action='store_true')
+parser.add_argument('--save_weights', action='store_true')
 opt = parser.parse_args()
+
+def lbp_transform(x):
+    radius = 2
+    n_points = 8 * radius
+    METHOD = 'uniform'
+    imgUMat = np.float32(x)
+    gray = cv2.cvtColor(imgUMat, cv2.COLOR_RGB2GRAY)
+    lbp = local_binary_pattern(gray, n_points, radius, METHOD)
+    lbp = torch.from_numpy(lbp).float()
+    return lbp
 
 fp16 = opt.fp16
 data_dir = opt.data_dir
@@ -82,17 +100,26 @@ if len(gpu_ids)>0:
 # ---------
 #
 
-transform_train_list = [
-        #transforms.RandomResizedCrop(size=128, scale=(0.75,1.0), ratio=(0.75,1.3333), interpolation=3), #Image.BICUBIC)
-        #transforms.Resize((256,128), interpolation=3),
-        transforms.Resize((64,32), interpolation=3),
-        transforms.Pad(2),
-        #transforms.RandomCrop((256,128)),
-        transforms.RandomCrop((64,32)),
-        #transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-        ]
+if opt.LBP:
+    transform_train_list = [
+	    transforms.Lambda(lbp_transform),
+            transforms.ToPILImage(),
+            transforms.Resize((64,32), interpolation=3),
+            transforms.Pad(2),
+            transforms.RandomCrop((64,32)),
+            transforms.Grayscale(3),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            ]
+
+if not opt.LBP:
+    transform_train_list = [
+            transforms.Resize((64,32), interpolation=3),
+            transforms.Pad(2),
+            transforms.RandomCrop((64,32)),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            ]
 
 transform_val_list = [
         #transforms.Resize(size=(256,128),interpolation=3), #Image.BICUBIC
@@ -338,6 +365,14 @@ elif opt.use_resnet44:
     model = ft_net44(len(class_names), opt.droprate, opt.stride)
 elif opt.use_resnet32:
     model = ft_net32(len(class_names), opt.droprate, opt.stride)
+elif opt.use_ensemble:
+    modela = opt.modelA
+    modelb = opt.modelB
+    modelA = eval("{}({},{},{})".format(modela,len(class_names), opt.droprate, opt.stride))
+    modelB = eval("{}({},{},{})".format(modelb,len(class_names), opt.droprate, opt.stride))
+    #modelA = ft_net56(len(class_names), opt.droprate, opt.stride)
+    #modelB = ft_net110(len(class_names), opt.droprate, opt.stride)
+    model = MyEnsemble(modelA, modelB)
 else:
     model = ft_net20(len(class_names), opt.droprate, opt.stride)
 
@@ -406,3 +441,6 @@ criterion = nn.CrossEntropyLoss()
 
 model = train_model(model, criterion, optimizer_ft, exp_lr_scheduler,
                        num_epochs=100)
+if opt.save_weights:
+    name = opt.name
+    weights_ = torch.save(model.state_dict(), "weights_cifar10/"+ name)

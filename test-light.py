@@ -34,6 +34,8 @@ parser.add_argument('--which_epoch',default='last', type=str, help='0,1,2,3...or
 parser.add_argument('--test_dir',default='../PKUSketchRE-ID_V1/pytorch',type=str, help='./test_data')
 parser.add_argument('--name', default='ft_resnet110', type=str, help='save model path')
 parser.add_argument('--batchsize', default=32, type=int, help='batchsize')
+parser.add_argument('--modelA',default='ft_net56', type=str)
+parser.add_argument('--modelB',default='ft_net110', type=str)
 parser.add_argument('--use_resnet32', action='store_true', help='use ResNet32' )
 parser.add_argument('--use_resnet44', action='store_true', help='use ResNet44' )
 parser.add_argument('--use_resnet56', action='store_true', help='use ResNet56' )
@@ -48,6 +50,7 @@ parser.add_argument('--use_resnet110_fc1024', action='store_true', help='use res
 parser.add_argument('--use_resnet110_fc768', action='store_true', help='use resnet110 + fc786' )
 parser.add_argument('--use_resnet110_fc256', action='store_true', help='use resnet110 + fc256' )
 parser.add_argument('--use_resnet110_fc128', action='store_true', help='use resnet110 + fc128' )
+parser.add_argument('--use_ensemble', action='store_true', help='use ensemble' )
 parser.add_argument('--multi', action='store_true', help='use multiple query' )
 parser.add_argument('--droprate', default=0.5, type=float, help='drop rate')
 parser.add_argument('--fp16', action='store_true', help='use fp16.' )
@@ -270,6 +273,14 @@ elif opt.use_resnet44:
     model_structure = ft_net44(opt.nclasses,  stride = opt.stride)
 elif opt.use_resnet32:
     model_structure = ft_net32(opt.nclasses,  stride = opt.stride)
+elif opt.use_ensemble:
+    modela = opt.modelA
+    modelb = opt.modelB
+    modelA = eval("{}({},  stride = {})".format(modela, opt.nclasses, opt.stride))
+    modelB = eval("{}({},  stride = {})".format(modelb, opt.nclasses, opt.stride))
+    #modelA = ft_net56(opt.nclasses,  stride = opt.stride)
+    #modelB = ft_net110(opt.nclasses,  stride = opt.stride)
+    model_structure = MyEnsemble(modelA,  modelB)
 else:
     model_structure = ft_net20(opt.nclasses,   stride = opt.stride)
 

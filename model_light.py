@@ -118,16 +118,17 @@ class ft_net20(nn.Module):
     def __init__(self, class_num, droprate=0.5, stride=2):
         super(ft_net20, self).__init__()
         self.add_module("module", resnet.resnet20())
-        weights_ = torch.load("weights_cifar10/test_2train.th")
-        self.load_state_dict(weights_)
+        weights_ = torch.load("weights_cifar10/resnet20-12fca82f.th")
+        self.load_state_dict(weights_['state_dict'])
         self.module.linear = nn.Sequential()
         self.classifier = ClassBlock(64, class_num, droprate)
 
     def forward(self, x):
         x = self.module(x)
-        x = x.view(x.size(0), x.size(1))
+        
         x = self.classifier(x)
         return x
+
 
 ###################################################################################################
 
@@ -279,7 +280,101 @@ class ft_net110_fc256(nn.Module):
         super(ft_net110_fc256, self).__init__()
         self.add_module("module", resnet.resnet110())
         weights_ = torch.load("weights_cifar10/resnet110-1d1ed7c2.th")
+
         self.load_state_dict(weights_['state_dict'])
+        self.module.linear = nn.Sequential()
+        self.classifier = ClassBlock(64, class_num, droprate, num_bottleneck=256)
+
+    def forward(self, x):
+        x = self.module(x)
+        x = x.view(x.size(0), x.size(1))        
+        x = self.classifier(x)
+        return x
+
+# Define the ResNet110-based Model
+class ft_net110_fc1024(nn.Module):
+
+    def __init__(self, class_num, droprate=0.5, stride=2):
+        super(ft_net110_fc1024, self).__init__()
+        self.add_module("module", resnet.resnet110())
+        weights_ = torch.load("weights_cifar10/110lightfc1024")
+        ordered_dict = OrderedDict()
+        for key, value in weights_.items():
+            s = key.split(".")
+            if s[0] == "classifier":
+                pass
+            else:
+                ordered_dict[key] = value
+        weights_ = torch.load("weights_cifar10/resnet110-1d1ed7c2.th")
+        for key, value in weights_["state_dict"].items():
+            s = key.split(".")
+            if s[1] == "linear":
+                ordered_dict[key] = value
+            else:
+                pass
+        self.load_state_dict(ordered_dict)
+        self.module.linear = nn.Sequential()
+        self.classifier = ClassBlock(64, class_num, droprate, num_bottleneck=1024)
+
+    def forward(self, x):
+        x = self.module(x)
+        x = x.view(x.size(0), x.size(1))        
+        x = self.classifier(x)
+        return x
+
+# Define the ResNet110-based Model
+class ft_net110_fc768(nn.Module):
+
+    def __init__(self, class_num, droprate=0.5, stride=2):
+        super(ft_net110_fc768, self).__init__()
+        self.add_module("module", resnet.resnet110())
+        weights_ = torch.load("weights_cifar10/110lightfc768")
+        ordered_dict = OrderedDict()
+        for key, value in weights_.items():
+            s = key.split(".")
+            if s[0] == "classifier":
+                pass
+            else:
+                ordered_dict[key] = value
+        weights_ = torch.load("weights_cifar10/resnet110-1d1ed7c2.th")
+        for key, value in weights_["state_dict"].items():
+            s = key.split(".")
+            if s[1] == "linear":
+                ordered_dict[key] = value
+            else:
+                pass
+        self.load_state_dict(ordered_dict)
+        self.module.linear = nn.Sequential()
+        self.classifier = ClassBlock(64, class_num, droprate, num_bottleneck=768)
+
+    def forward(self, x):
+        x = self.module(x)
+        x = x.view(x.size(0), x.size(1)) 
+        x = self.classifier(x)
+        return x
+
+# Define the ResNet110-based Model
+class ft_net110_fc256(nn.Module):
+
+    def __init__(self, class_num, droprate=0.5, stride=2):
+        super(ft_net110_fc256, self).__init__()
+        self.add_module("module", resnet.resnet110())
+        weights_ = torch.load("weights_cifar10/110lightfc256")
+        ordered_dict = OrderedDict()
+        for key, value in weights_.items():
+            s = key.split(".")
+            if s[0] == "classifier":
+                pass
+            else:
+                ordered_dict[key] = value
+        weights_ = torch.load("weights_cifar10/resnet110-1d1ed7c2.th")
+        for key, value in weights_["state_dict"].items():
+            s = key.split(".")
+            if s[1] == "linear":
+                ordered_dict[key] = value
+            else:
+                pass
+        self.load_state_dict(ordered_dict)
         self.module.linear = nn.Sequential()
         self.classifier = ClassBlock(64, class_num, droprate, num_bottleneck=256)
 
@@ -295,8 +390,22 @@ class ft_net110_fc128(nn.Module):
     def __init__(self, class_num, droprate=0.5, stride=2):
         super(ft_net110_fc128, self).__init__()
         self.add_module("module", resnet.resnet110())
+        weights_ = torch.load("weights_cifar10/110lightfc128")
+        ordered_dict = OrderedDict()
+        for key, value in weights_.items():
+            s = key.split(".")
+            if s[0] == "classifier":
+                pass
+            else:
+                ordered_dict[key] = value
         weights_ = torch.load("weights_cifar10/resnet110-1d1ed7c2.th")
-        self.load_state_dict(weights_['state_dict'])
+        for key, value in weights_["state_dict"].items():
+            s = key.split(".")
+            if s[1] == "linear":
+                ordered_dict[key] = value
+            else:
+                pass
+        self.load_state_dict(ordered_dict)
         self.module.linear = nn.Sequential()
         self.classifier = ClassBlock(64, class_num, droprate, num_bottleneck=128)
 
@@ -316,8 +425,22 @@ class ft_net56_fc1024(nn.Module):
     def __init__(self, class_num, droprate=0.5, stride=2):
         super(ft_net56_fc1024, self).__init__()
         self.add_module("module", resnet.resnet56())
+        weights_ = torch.load("weights_cifar10/56lightfc1024")
+        ordered_dict = OrderedDict()
+        for key, value in weights_.items():
+            s = key.split(".")
+            if s[0] == "classifier":
+                pass
+            else:
+                ordered_dict[key] = value
         weights_ = torch.load("weights_cifar10/resnet56-4bfd9763.th")
-        self.load_state_dict(weights_['state_dict'])
+        for key, value in weights_["state_dict"].items():
+            s = key.split(".")
+            if s[1] == "linear":
+                ordered_dict[key] = value
+            else:
+                pass
+        self.load_state_dict(ordered_dict)        
         self.module.linear = nn.Sequential()
         self.classifier = ClassBlock(64, class_num, droprate, num_bottleneck=1024)
 
@@ -332,14 +455,28 @@ class ft_net56_fc768(nn.Module):
     def __init__(self, class_num, droprate=0.5, stride=2):
         super(ft_net56_fc768, self).__init__()
         self.add_module("module", resnet.resnet56())
+        weights_ = torch.load("weights_cifar10/56lightfc768")
+        ordered_dict = OrderedDict()
+        for key, value in weights_.items():
+            s = key.split(".")
+            if s[0] == "classifier":
+                pass
+            else:
+                ordered_dict[key] = value
         weights_ = torch.load("weights_cifar10/resnet56-4bfd9763.th")
-        self.load_state_dict(weights_['state_dict'])
+        for key, value in weights_["state_dict"].items():
+            s = key.split(".")
+            if s[1] == "linear":
+                ordered_dict[key] = value
+            else:
+                pass
+        self.load_state_dict(ordered_dict)
         self.module.linear = nn.Sequential()
         self.classifier = ClassBlock(64, class_num, droprate, num_bottleneck=768)
 
     def forward(self, x):
         x = self.module(x)
-        
+        x = x.view(x.size(0), x.size(1)) 
         x = self.classifier(x)
         return x
 
@@ -348,14 +485,28 @@ class ft_net56_fc256(nn.Module):
     def __init__(self, class_num, droprate=0.5, stride=2):
         super(ft_net56_fc256, self).__init__()
         self.add_module("module", resnet.resnet56())
+        weights_ = torch.load("weights_cifar10/56lightfc256")
+        ordered_dict = OrderedDict()
+        for key, value in weights_.items():
+            s = key.split(".")
+            if s[0] == "classifier":
+                pass
+            else:
+                ordered_dict[key] = value
         weights_ = torch.load("weights_cifar10/resnet56-4bfd9763.th")
-        self.load_state_dict(weights_['state_dict'])
+        for key, value in weights_["state_dict"].items():
+            s = key.split(".")
+            if s[1] == "linear":
+                ordered_dict[key] = value
+            else:
+                pass
+        self.load_state_dict(ordered_dict)
         self.module.linear = nn.Sequential()
         self.classifier = ClassBlock(64, class_num, droprate, num_bottleneck=256)
 
     def forward(self, x):
         x = self.module(x)
-        
+        x = x.view(x.size(0), x.size(1)) 
         x = self.classifier(x)
         return x
 
@@ -364,17 +515,30 @@ class ft_net56_fc128(nn.Module):
     def __init__(self, class_num, droprate=0.5, stride=2):
         super(ft_net56_fc128, self).__init__()
         self.add_module("module", resnet.resnet56())
+        weights_ = torch.load("weights_cifar10/56lightfc128")
+        ordered_dict = OrderedDict()
+        for key, value in weights_.items():
+            s = key.split(".")
+            if s[0] == "classifier":
+                pass
+            else:
+                ordered_dict[key] = value
         weights_ = torch.load("weights_cifar10/resnet56-4bfd9763.th")
-        self.load_state_dict(weights_['state_dict'])
+        for key, value in weights_["state_dict"].items():
+            s = key.split(".")
+            if s[1] == "linear":
+                ordered_dict[key] = value
+            else:
+                pass
+        self.load_state_dict(ordered_dict)
         self.module.linear = nn.Sequential()
         self.classifier = ClassBlock(64, class_num, droprate, num_bottleneck=128)
 
     def forward(self, x):
         x = self.module(x)
-        
+        x = x.view(x.size(0), x.size(1)) 
         x = self.classifier(x)
         return x
-
 
 ###################################################################################################
 
@@ -385,12 +549,26 @@ class ft_net110_spp(nn.Module):
     def __init__(self, class_num, droprate=0.5, stride=2):
         super(ft_net110_spp, self).__init__()
         self.add_module("module", resnet.resnet110())
+        weights_ = torch.load("weights_cifar10/110lightspp")
+        ordered_dict = OrderedDict()
+        for key, value in weights_.items():
+            s = key.split(".")
+            if s[0] == "classifier":
+                pass
+            else:
+                ordered_dict[key] = value
         weights_ = torch.load("weights_cifar10/resnet110-1d1ed7c2.th")
-        self.load_state_dict(weights_['state_dict'])
+        for key, value in weights_["state_dict"].items():
+            s = key.split(".")
+            if s[1] == "linear":
+                ordered_dict[key] = value
+            else:
+                pass
+        self.load_state_dict(ordered_dict)
         self.module.linear = nn.Sequential()
         ####
         self.spp = pyrpool.SpatialPyramidPooling((1,2))
-        self.classifier = ClassBlock(320, class_num, droprate, num_bottleneck=128)
+        self.classifier = ClassBlock(320, class_num, droprate)
 
     def forward(self, x):
         #x = self.module(x)
@@ -412,12 +590,26 @@ class ft_net56_spp(nn.Module):
     def __init__(self, class_num, droprate=0.5, stride=2):
         super(ft_net56_spp, self).__init__()
         self.add_module("module", resnet.resnet56())
+        weights_ = torch.load("weights_cifar10/56lightspp")
+        ordered_dict = OrderedDict()
+        for key, value in weights_.items():
+            s = key.split(".")
+            if s[0] == "classifier":
+                pass
+            else:
+                ordered_dict[key] = value
         weights_ = torch.load("weights_cifar10/resnet56-4bfd9763.th")
-        self.load_state_dict(weights_['state_dict'])
+        for key, value in weights_["state_dict"].items():
+            s = key.split(".")
+            if s[1] == "linear":
+                ordered_dict[key] = value
+            else:
+                pass
+        self.load_state_dict(ordered_dict)
         self.module.linear = nn.Sequential()
         ####
         self.spp = pyrpool.SpatialPyramidPooling((1,2))
-        self.classifier = ClassBlock(320, class_num, droprate, num_bottleneck=128)
+        self.classifier = ClassBlock(320, class_num, droprate)
 
     def forward(self, x):
         #x = self.module(x)
@@ -433,7 +625,24 @@ class ft_net56_spp(nn.Module):
         return x
 
 
-
+class MyEnsemble(nn.Module):
+    def __init__(self, modelA, modelB):
+        super(MyEnsemble, self).__init__()
+        self.modelA = modelA
+        self.modelA.classifier = nn.Identity() 
+        self.modelB = modelB
+        self.modelB.classifier = nn.Identity() 
+        self.classifier = ClassBlock(64+64, 150, 0.5)
+        #self.classifier = ClassBlock(320+320, 150, 0.5)
+        
+    def forward(self, x):
+        x1 = self.modelA(x.clone())  # clone to make sure x is not changed by inplace methods
+        x1 = x1.view(x1.size(0), -1)
+        x2 = self.modelB(x)
+        x2 = x2.view(x2.size(0), -1)
+        x = torch.cat((x1, x2), dim=1)
+        x = self.classifier(F.relu(x))
+        return x
 
 
 ###################################################################################################
@@ -448,10 +657,12 @@ python model.py
 if __name__ == '__main__':
 # Here I left a simple forward function.
 # Test the model, before you train it. 
-    net = ft_net(702, stride=1)
-    net.classifier = nn.Sequential()
-    print(net)
+    net = ft_net(150, stride=1)
+    model.classifier = nn.Sequential()
+    print(model)
     input = Variable(torch.FloatTensor(8, 3, 256, 128))
     output = net(input)
     print('net output size:')
     print(output.shape)
+
+
